@@ -52,10 +52,11 @@ Output data:
 76.31  77.58  78.68  79.58  80.40  75.01  76.54  77.95  79.35  80.83  
 82.24  83.48  84.48  85.25  88.11  88.92  89.58  90.09  90.57  91.17  
 89.76  89.63  89.22  88.76  95.15  94.76  94.31  93.83  93.44  93.29  
-Done
+Different values: 92
+Result: failed
 ```
 
-OpenCL build options can be given as the first parameter: `./testlocallaplaciancl "-cl-unsafe-math-optimizations -cl-fast-relaxed-math"`
+OpenCL build options can be given as the first parameter: `./testlocallaplaciancl "between quotes :-) -cl-fast-relaxed-math"`
 
 Output of ROCm without optimizations: `./testlocallaplaciancl -O0`
 
@@ -77,7 +78,8 @@ Output data:
 69.20  70.30  71.37  72.41  73.45  74.50  75.56  76.60  77.66  78.76  
 79.90  81.02  82.09  83.12  84.12  85.13  86.14  87.18  88.26  89.41  
 91.97  93.23  94.46  95.67  96.86  98.02  99.18  100.33  101.51  102.73  
-Done
+Different values: 0
+Result: passed
 ```
 
 With optimizations disabled the output is exactly the same as the ground truth. Unfortunately it is not possible to use -O0 with darktable... `export AMD_OCL_BUILD_OPTIONS_APPEND="-O0"` results in compilation errors.

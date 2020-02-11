@@ -1,6 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
+
+#ifdef __APPLE__ 
+#include <OpenCL/opencl.h>
+#else
 #include <CL/cl.h>
+#endif
 
 #include "locallaplaciancl.h"
 
@@ -68,8 +74,8 @@ char const* clGetErrorString(cl_int const err)
     CL_ERR_TO_STR(CL_INVALID_COMPILER_OPTIONS);
     CL_ERR_TO_STR(CL_INVALID_LINKER_OPTIONS);
     CL_ERR_TO_STR(CL_INVALID_DEVICE_PARTITION_COUNT);
-    CL_ERR_TO_STR(CL_INVALID_PIPE_SIZE);
-    CL_ERR_TO_STR(CL_INVALID_DEVICE_QUEUE);
+    //CL_ERR_TO_STR(CL_INVALID_PIPE_SIZE);
+    //CL_ERR_TO_STR(CL_INVALID_DEVICE_QUEUE);
 
   default:
     return "UNKNOWN ERROR CODE";
@@ -169,7 +175,7 @@ void run_kernel(int width, int height, int bpp, float* data, const char *options
   free(program_file);
 
   // Create command queue
-  cl_command_queue queue = clCreateCommandQueueWithProperties(ctx, device, 0, &err);
+  cl_command_queue queue = clCreateCommandQueue(ctx, device, 0, &err);
   if (err != 0) { fprintf(stderr, "Error clCreateCommandQueue: %s\n", clGetErrorString(err)); exit(1); }
 
   // Allocate in/out buffers
@@ -207,6 +213,26 @@ void run_kernel(int width, int height, int bpp, float* data, const char *options
   clReleaseDevice(device);
 }
 
+// Expected result based on AMDGPU-Pro and checked with Intel GPUs
+float expectedResult[] = {
+    -4.23, -2.96, -1.72, -0.49, 00.73, 01.93, 03.12, 04.32, 05.54, 06.82,
+    08.94, 10.17, 11.34, 12.48, 13.59, 14.68, 15.74, 16.79, 17.85, 18.96, 
+    20.11, 21.23, 22.33, 23.43, 24.53, 25.65, 26.75, 27.82, 28.90, 30.01, 
+    30.39, 31.49, 32.54, 33.57, 34.58, 35.59, 36.59, 37.60, 38.63, 39.74, 
+    39.91, 41.08, 42.22, 43.31, 44.37, 45.40, 46.40, 47.39, 48.41, 49.47, 
+    49.59, 50.68, 51.72, 52.74, 53.74, 54.74, 55.74, 56.76, 57.84, 58.99, 
+    59.32, 60.47, 61.54, 62.56, 63.55, 64.53, 65.49, 66.45, 67.45, 68.52, 
+    69.20, 70.30, 71.37, 72.41, 73.45, 74.50, 75.56, 76.60, 77.66, 78.76, 
+    79.90, 81.02, 82.09, 83.12, 84.12, 85.13, 86.14, 87.18, 88.26, 89.41, 
+    91.97, 93.23, 94.46, 95.67, 96.86, 98.02, 99.18, 100.33, 101.51, 102.73
+};
+
+// Not entirely correct comparison but it does the job
+int floatcmp(float a, float b)
+{
+    return (int)(a * 100 + .5) == (int)(b * 100 + .5);
+}
+
 int main(int argc, char *argv[]) 
 {
   cl_int i, x, y;
@@ -215,7 +241,7 @@ int main(int argc, char *argv[])
   int bpp = sizeof(float);
   const char* options = "";
 
-  fprintf(stderr, "Darktable local laplacian test\n");
+  printf("Darktable local laplacian test\n");
 
   if (argc > 1) 
   {
@@ -225,31 +251,37 @@ int main(int argc, char *argv[])
   // Prepare some input data
   const size_t buf_size = width * height * bpp;
   float *data = (float *)malloc(buf_size);
-  
-  //fprintf(stderr, "Input data:\n");
-  for (y = 0; y < height; ++y) {
-    for (x = 0; x < width; ++x) {
+  for (y = 0; y < height; ++y) 
+  {
+    for (x = 0; x < width; ++x) 
+    {
       i = y * width + x;
       data[i] = i;
-      //fprintf(stderr, "%05.2f  ", data[i]);
     }
-    //fprintf(stderr, "\n");
   }
 
   // Run the kernel
   run_kernel(width, height, bpp, data, options);
 
   // Print the result
-  fprintf(stderr, "Output data:\n");
-  for (y = 0; y < height; ++y) {
-    for (x = 0; x < width; ++x) {
+  printf("Output data:\n");
+  int result = 0;
+  for (y = 0; y < height; ++y) 
+  {
+    for (x = 0; x < width; ++x) 
+    {
       i = y * width + x;
-      fprintf(stderr, "%05.2f  ", data[i]);
+      if (!floatcmp(data[i], expectedResult[i]))
+      {
+          result++;
+          printf("x");
+      }
+      printf("%05.2f  ", data[i]);
     }
-    fprintf(stderr, "\n");
+    printf("\n");
   }
 
-  fprintf(stderr, "Done\n");
-
-  return 0;
+  printf("Different values: %d\n", result); 
+  printf("Result: %s\n", (result > 0 ? "failed" : "passed")); 
+  return result;
 }
