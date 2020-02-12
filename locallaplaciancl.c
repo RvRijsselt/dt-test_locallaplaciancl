@@ -21,6 +21,7 @@
 #include <CL/cl.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 
 #define ROUNDUP(a, n) ((a) % (n) == 0 ? (a) : ((a) / (n)+1) * (n))
 #define ROUNDUPWD(a) dt_opencl_roundup(a)
@@ -46,6 +47,38 @@ int dt_opencl_roundup(int size)
 
   return (size % roundup == 0 ? size : (size / roundup + 1) * roundup);
 }
+
+size_t dt_round_size(const size_t size, const size_t alignment)
+{
+  // Round the size of a buffer to the closest higher multiple
+  return ((size % alignment) == 0) ? size : ((size - 1) / alignment + 1) * alignment;
+}
+
+void *dt_alloc_align(size_t alignment, size_t size)
+{
+  const size_t aligned_size = dt_round_size(size, alignment);
+#if defined(__FreeBSD_version) && __FreeBSD_version < 700013
+  return malloc(aligned_size);
+#elif defined(_WIN32)
+  return _aligned_malloc(aligned_size, alignment);
+#else
+  void *ptr = NULL;
+  if(posix_memalign(&ptr, alignment, aligned_size)) return NULL;
+  return ptr;
+#endif
+}
+
+#ifdef _WIN32
+void dt_free_align(void *mem)
+{
+  _aligned_free(mem);
+}
+#define dt_free_align_ptr dt_free_align
+#else
+#define dt_free_align(A) free(A)
+#define dt_free_align_ptr free
+#endif
+
 
 
 
@@ -338,6 +371,107 @@ cl_int dt_local_laplacian_cl(
     }
   }
 
+
+
+  // Dump all inputs to the next kernel
+  err = clFinish(b->queue);
+
+  FILE *txt = fopen("program-dump-laplacian-inout.txt", "w");
+
+  for(int k=0;k<num_gamma;k++)
+  for(int l=0;l<b->num_levels;l++)
+  {
+    const int wd = dl(b->bwidth, l);
+    const int ht = dl(b->bheight, l);
+    float *buf = dt_alloc_align(16, wd * ht * sizeof(float));
+
+    err = dt_opencl_copy_device_to_host(b->queue, buf, b->dev_processed[k][l], wd, ht, sizeof(float));  
+
+    fprintf(txt, "float input_dev_processed_k%dl%d[%d*%d] = { \n", k, l, wd, ht);
+
+    char filename[256] = { 0 };
+    snprintf(filename, sizeof(filename), "out/pre_dev_processed_%d_%d.pfm", k,l);
+    {
+      FILE *f = fopen(filename, "wb");
+      fprintf(f, "Pf\n%d %d\n-1.0\n", wd, ht);
+      for(int j=0;j<ht;j++)
+        for(int i=0;i<wd;i++) {
+            fwrite(buf + wd*j+i, 1, sizeof(float), f);
+            fprintf(txt, "%a, ", buf[wd*j+i]);
+        }
+      fclose(f);
+    }
+    fprintf(txt, "};\n");
+
+    dt_free_align(buf);
+  }
+
+  fprintf(txt, "\n\n\n");
+  
+  for(int l=0;l<b->num_levels;l+=1)
+  {
+    const int wd = dl(b->bwidth, l);
+    const int ht = dl(b->bheight, l);
+    float *buf = dt_alloc_align(16, wd * ht * sizeof(float));
+
+    err = dt_opencl_copy_device_to_host(b->queue, buf, b->dev_padded[l], wd, ht, sizeof(float));  
+
+    fprintf(txt, "float input_dev_padded_l%d[%d*%d] = { \n", l, wd, ht);
+
+    char filename[256] = { 0 };
+    snprintf(filename, sizeof(filename), "out/pre_padded_%d.pfm", l);
+    {
+      FILE *f = fopen(filename, "wb");
+      fprintf(f, "Pf\n%d %d\n-1.0\n", wd, ht);
+      for(int j=0;j<ht;j++)
+        for(int i=0;i<wd;i++) {
+            fwrite(buf + wd*j+i, 1, sizeof(float), f);
+            fprintf(txt, "%a, ", buf[wd*j+i]);
+        }
+      fclose(f);
+    }
+    
+    fprintf(txt, "};\n");
+
+    dt_free_align(buf);
+  }
+  
+  fprintf(txt, "\n\n\n");
+  
+  for(int l=0;l<b->num_levels;l+=1)
+  {
+    const int wd = dl(b->bwidth, l);
+    const int ht = dl(b->bheight, l);
+    float *buf = dt_alloc_align(16, wd * ht * sizeof(float));
+
+    err = dt_opencl_copy_device_to_host(b->queue, buf, b->dev_output[l], wd, ht, sizeof(float));  
+
+    fprintf(txt, "float input_dev_output_l%d[%d*%d] = { \n", l, wd, ht);
+
+    char filename[256] = { 0 };
+    snprintf(filename, sizeof(filename), "out/pre_output_%d.pfm", l);
+    {
+      FILE *f = fopen(filename, "wb");
+      fprintf(f, "Pf\n%d %d\n-1.0\n", wd, ht);
+      for(int j=0;j<ht;j++)
+        for(int i=0;i<wd;i++) {
+            fwrite(buf + wd*j+i, 1, sizeof(float), f);
+            fprintf(txt, "%a, ", buf[wd*j+i]);
+        }
+      fclose(f);
+    }
+
+    fprintf(txt, "};\n");
+
+    dt_free_align(buf);
+  }
+
+  fprintf(txt, "\n\n\n");
+
+
+
+
+
   // assemble output pyramid coarse to fine
   for(int l=b->num_levels-2;l >= 0; l--)
   {
@@ -368,6 +502,45 @@ cl_int dt_local_laplacian_cl(
     err = dt_opencl_enqueue_kernel_2d(b->queue, b->global->kernel_laplacian_assemble, sizes);
     if(err != CL_SUCCESS) goto error;
   }
+
+
+  // Dump all outputs of the last kernel
+  err = clFinish(b->queue);
+
+  for(int l=0;l<b->num_levels;l+=1)
+  {
+    const int wd = dl(b->bwidth, l);
+    const int ht = dl(b->bheight, l);
+    float *buf = dt_alloc_align(16, wd * ht * sizeof(float));
+
+    err = dt_opencl_copy_device_to_host(b->queue, buf, b->dev_output[l], wd, ht, sizeof(float));  
+
+    fprintf(txt, "float expected_dev_output_l%d[%d*%d] = { \n", l, wd, ht);
+
+    char filename[256] = { 0 };
+    snprintf(filename, sizeof(filename), "out/post_output_%d.pfm", l);
+    {
+      FILE *f = fopen(filename, "wb");
+      fprintf(f, "Pf\n%d %d\n-1.0\n", wd, ht);
+      for(int j=0;j<ht;j++)
+        for(int i=0;i<wd;i++) {
+            fwrite(buf + wd*j+i, 1, sizeof(float), f);
+            fprintf(txt, "%a, ", buf[wd*j+i]);
+        }
+      fclose(f);
+    }
+
+    fprintf(txt, "};\n");
+
+    dt_free_align(buf);
+  }
+  
+  fprintf(txt, "\n\n");
+  fclose(txt);
+
+
+
+
 
   // read back processed L channel and copy colours:
   size_t sizes[] = { ROUNDUPWD(b->width), ROUNDUPHT(b->height), 1 };

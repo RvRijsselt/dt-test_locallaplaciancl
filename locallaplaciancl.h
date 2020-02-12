@@ -66,9 +66,13 @@ void dt_local_laplacian_free_cl(dt_local_laplacian_cl_t *g);
 cl_int dt_local_laplacian_cl(dt_local_laplacian_cl_t *g, cl_mem input, cl_mem output);
 
 
-
+int dt_opencl_roundup(int size);
+void *dt_alloc_align(size_t alignment, size_t size);
 cl_mem dt_opencl_alloc_device(cl_context ctx, const int width, const int height, const int bpp);
 int dt_opencl_write_host_to_device(cl_command_queue queue, void *host, void *device, const int width,
                                    const int height, const int bpp);
 int dt_opencl_copy_device_to_host(cl_command_queue queue, void *host, void *device, const int width,
                                   const int height, const int bpp);
+int dt_opencl_set_kernel_arg(cl_kernel kernel, const int num, const size_t size,
+                             const void *arg);
+int dt_opencl_enqueue_kernel_2d(cl_command_queue queue, cl_kernel kernel, const size_t *sizes);

@@ -194,6 +194,9 @@ void run_kernel(int width, int height, int bpp, float* data, const char *options
   err = dt_local_laplacian_cl(llplc, dev_in, dev_out);
   if (err != 0) { fprintf(stderr, "Error dt_local_laplacian_cl: %s\n", clGetErrorString(err)); exit(1); }
 
+  err = clFinish(queue);
+  if (err != 0) { fprintf(stderr, "Error clFinish: %s\n", clGetErrorString(err)); exit(1); }
+  
   // Cleanup 
   dt_local_laplacian_free_cl(llplc);
   
