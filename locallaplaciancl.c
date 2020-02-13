@@ -236,7 +236,7 @@ void dt_local_laplacian_free_cl(dt_local_laplacian_cl_t *g)
   //dt_opencl_finish(g->devid);
 
   // free device mem
-  for(int l=0;l<max_levels;l++)
+  for(int l=0;l<g->num_levels;l++)  // oops we are releasing more levels than we created
   {
     clReleaseMemObject(g->dev_padded[l]);
     clReleaseMemObject(g->dev_output[l]);
@@ -274,7 +274,7 @@ dt_local_laplacian_cl_t *dt_local_laplacian_init_cl(
   g->shadows = shadows;
   g->highlights = highlights;
   g->clarity = clarity;
-  g->dev_padded = (cl_mem *)calloc(max_levels, sizeof(cl_mem *));
+  g->dev_padded = (cl_mem *)calloc(max_levels, sizeof(cl_mem *));   // g->num_levels should be enough right?
   g->dev_output = (cl_mem *)calloc(max_levels, sizeof(cl_mem *));
   g->dev_processed = (cl_mem **)calloc(num_gamma, sizeof(cl_mem **));
   for(int k=0;k<num_gamma;k++)
