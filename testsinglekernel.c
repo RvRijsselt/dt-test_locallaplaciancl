@@ -160,17 +160,17 @@ int image_count_inequal(float* a, float* b, int len)
 {
   int res = 0;
   float epsilon = 0.0001;
-  fprintf(stderr, "  Expected == Actual\n");
+  printf("  Expected == Actual\n");
   for (int i=0; i < len; ++i)
   {
-    fprintf(stderr, "  %f == %f", a[i], b[i]);
+    printf("  %f == %f", a[i], b[i]);
     if (fabs(a[i] - b[i]) > epsilon) {
       res++;
-      fprintf(stderr, " x \n");
+      printf(" x \n");
     }
     else
     {
-      fprintf(stderr, "\n");
+      printf("\n");
     }
     
   }
@@ -224,19 +224,19 @@ int run_kernel(int width, int height, int bpp, float* data, const char *options)
   // Upload data to device
   err |= dt_opencl_write_host_to_device(queue, input_dev_padded_l0, b->dev_padded[0], 32, 32, bpp);
   err |= dt_opencl_write_host_to_device(queue, input_dev_padded_l1, b->dev_padded[1], 16, 16, bpp);
-  //err |= dt_opencl_write_host_to_device(queue, input_dev_padded_l2, b->dev_padded[2], 8, 8, bpp);   // is uninitialized and not used
+  //err |= dt_opencl_write_host_to_device(queue, input_dev_padded_l2, b->dev_padded[2], 16, 16, bpp);   // is uninitialized and not used
   err |= dt_opencl_write_host_to_device(queue, input_dev_processed_k0l0, b->dev_processed[0][0], 32, 32, bpp);
   err |= dt_opencl_write_host_to_device(queue, input_dev_processed_k0l1, b->dev_processed[0][1], 16, 16, bpp);
-  err |= dt_opencl_write_host_to_device(queue, input_dev_processed_k0l2, b->dev_processed[0][2], 8, 8, bpp);
+  err |= dt_opencl_write_host_to_device(queue, input_dev_processed_k0l2, b->dev_processed[0][2], 16, 16, bpp);
   err |= dt_opencl_write_host_to_device(queue, input_dev_processed_k1l0, b->dev_processed[1][0], 32, 32, bpp);
   err |= dt_opencl_write_host_to_device(queue, input_dev_processed_k1l1, b->dev_processed[1][1], 16, 16, bpp);
-  err |= dt_opencl_write_host_to_device(queue, input_dev_processed_k1l2, b->dev_processed[1][2], 8, 8, bpp);
+  err |= dt_opencl_write_host_to_device(queue, input_dev_processed_k1l2, b->dev_processed[1][2], 16, 16, bpp);
   err |= dt_opencl_write_host_to_device(queue, input_dev_processed_k2l0, b->dev_processed[2][0], 32, 32, bpp);
   err |= dt_opencl_write_host_to_device(queue, input_dev_processed_k2l1, b->dev_processed[2][1], 16, 16, bpp);
-  err |= dt_opencl_write_host_to_device(queue, input_dev_processed_k2l2, b->dev_processed[2][2], 8, 8, bpp);
+  err |= dt_opencl_write_host_to_device(queue, input_dev_processed_k2l2, b->dev_processed[2][2], 16, 16, bpp);
   //err |= dt_opencl_write_host_to_device(queue, input_dev_output_l0, b->dev_output[0], 32, 32, bpp);     // is uninitialized, write used only
   //err |= dt_opencl_write_host_to_device(queue, input_dev_output_l1, b->dev_output[1], 16, 16, bpp);     // is uninitialized, write used only
-  err |= dt_opencl_write_host_to_device(queue, input_dev_output_l2, b->dev_output[2], 8, 8, bpp);
+  err |= dt_opencl_write_host_to_device(queue, input_dev_output_l2, b->dev_output[2], 16, 16, bpp);   // this is actually used as input
   if (err != 0) { fprintf(stderr, "Error dt_opencl_write_host_to_device: %s\n", clGetErrorString(err)); exit(1); }
 
   err = clFinish(queue);
@@ -283,8 +283,8 @@ int run_kernel(int width, int height, int bpp, float* data, const char *options)
   {
     int l = 1;  // Only the modified one
     printf("level %d \n", l);
-    const int wd = dl(b->bwidth, l);
-    const int ht = dl(b->bheight, l);
+    const int wd = ROUNDUPWD(dl(b->bwidth, l));
+    const int ht = ROUNDUPHT(dl(b->bheight, l));
     float *buf = dt_alloc_align(16, wd * ht * sizeof(float));
 
     err = dt_opencl_copy_device_to_host(b->queue, buf, b->dev_output[l], wd, ht, sizeof(float));  
@@ -313,10 +313,10 @@ int run_kernel(int width, int height, int bpp, float* data, const char *options)
 
     // hmm strange
     //result += image_count_inequal(l==0?expected_dev_output_l0:l==1?expected_dev_output_l1:expected_dev_output_l2, buf, wd * ht);
-    int diff = image_count_inequal(actual_dev_output_l1_with_O0, buf, wd * ht);
+    int diff = image_count_inequal(actual_dev_output_l1, buf, wd * ht);
     if (diff > 0)
     {
-      fprintf(stderr, "Output level %d is different\n", l);
+      printf("Output level %d is different\n", l);
       result += diff;
     }
   }

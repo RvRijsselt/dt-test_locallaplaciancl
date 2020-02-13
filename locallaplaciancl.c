@@ -381,8 +381,8 @@ cl_int dt_local_laplacian_cl(
   for(int k=0;k<num_gamma;k++)
   for(int l=0;l<b->num_levels;l++)
   {
-    const int wd = dl(b->bwidth, l);
-    const int ht = dl(b->bheight, l);
+    const int wd = ROUNDUPWD(dl(b->bwidth, l));
+    const int ht = ROUNDUPHT(dl(b->bheight, l));
     float *buf = dt_alloc_align(16, wd * ht * sizeof(float));
 
     err = dt_opencl_copy_device_to_host(b->queue, buf, b->dev_processed[k][l], wd, ht, sizeof(float));  
@@ -410,8 +410,8 @@ cl_int dt_local_laplacian_cl(
   
   for(int l=0;l<b->num_levels;l+=1)
   {
-    const int wd = dl(b->bwidth, l);
-    const int ht = dl(b->bheight, l);
+    const int wd = ROUNDUPWD(dl(b->bwidth, l));
+    const int ht = ROUNDUPHT(dl(b->bheight, l));
     float *buf = dt_alloc_align(16, wd * ht * sizeof(float));
 
     err = dt_opencl_copy_device_to_host(b->queue, buf, b->dev_padded[l], wd, ht, sizeof(float));  
@@ -440,8 +440,8 @@ cl_int dt_local_laplacian_cl(
   
   for(int l=0;l<b->num_levels;l+=1)
   {
-    const int wd = dl(b->bwidth, l);
-    const int ht = dl(b->bheight, l);
+    const int wd = ROUNDUPWD(dl(b->bwidth, l));
+    const int ht = ROUNDUPHT(dl(b->bheight, l));
     float *buf = dt_alloc_align(16, wd * ht * sizeof(float));
 
     err = dt_opencl_copy_device_to_host(b->queue, buf, b->dev_output[l], wd, ht, sizeof(float));  
@@ -509,8 +509,8 @@ cl_int dt_local_laplacian_cl(
 
   for(int l=0;l<b->num_levels;l+=1)
   {
-    const int wd = dl(b->bwidth, l);
-    const int ht = dl(b->bheight, l);
+    const int wd = ROUNDUPWD(dl(b->bwidth, l));
+    const int ht = ROUNDUPHT(dl(b->bheight, l));
     float *buf = dt_alloc_align(16, wd * ht * sizeof(float));
 
     err = dt_opencl_copy_device_to_host(b->queue, buf, b->dev_output[l], wd, ht, sizeof(float));  
