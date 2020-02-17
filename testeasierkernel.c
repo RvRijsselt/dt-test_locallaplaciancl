@@ -225,9 +225,10 @@ int run_kernel(int width, int height, int bpp, float* data, const char *options)
   // Create some easier to deal with data
   for (int i = 0; i < 16*16; ++i)
   {
-    input_dev_padded_l1[i] = (float)i / (16*16+1);
-    input_dev_output_l2[i] = (float)i / (16*16+1);
-    expected_dev_output_l1[i] = (float)i / (16*16+1);
+    float frac = (float)i / (16*16+1);
+    input_dev_padded_l1[i] = frac;
+    input_dev_output_l2[i] = frac;
+    expected_dev_output_l1[i] = (int)(frac * 5) + (int)(frac * 5) * 0.1 + 0.01; // same algo as in kernel
 
     input_dev_processed_k0l1[i] = 0.01;
     input_dev_processed_k0l2[i] = 0.02;
