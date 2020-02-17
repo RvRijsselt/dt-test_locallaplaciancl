@@ -7,6 +7,30 @@ Standalone darktable OpenCL kernel test program for Local Contrast issue with AM
 
 Build with `make`
 
+## Minimal test
+
+Run with `pr -T -m <(./testeasierkernel -O0) <(./testeasierkernel -O1)`
+
+The [kernel](https://github.com/RvRijsselt/dt-test_locallaplaciancl/blob/master/locallaplacian.cl#L336) has 14 input images as input. There is one switch statement which should step through 4 of them. The output of optimized version shows that only 2 images are read while the unoptimized reads the expected 4.
+
+```
+    1  Darktable local laplacian test      Darktable local laplacian test                                                   
+     2    Device: gfx900                      Device: gfx900                                                                 
+     3    Hardware version: OpenCL 2.0        Hardware version: OpenCL 2.0                                                   
+     4    Software version: 3052.0 (HSA1.1,   Software version: 3052.0 (HSA1.1,                                              
+     5    OpenCL C version: OpenCL C 2.0      OpenCL C version: OpenCL C 2.0                                                 
+     6    Build options: -O0                  Build options: -O1        \
+...
+    10    0.000000 == 0.010000 x              0.000000 == 0.010000 x      
+    62    0.202335 == 1.110000 x              0.202335 == 1.010000 x
+   113    0.400778 == 2.210000 x              0.400778 == 2.010000 x
+   165    0.603113 == 3.310000 x              0.603113 == 3.210000 x   
+   216    0.801556 == 4.410000 x              0.801556 == 4.210000 x
+   265    0.992218 == 4.410000 x              0.992218 == 4.210000 x
+```
+Note in the output the value (e.g. 3.31) the most significant digit represents the selected switch case ([switch case 3](https://github.com/RvRijsselt/dt-test_locallaplaciancl/blob/master/locallaplacian.cl#L373)). The next digits is simply the value of the first pixel of the selected image (here value 0.31, comes from image with parameter name [input_dev_processed_k3l1](https://github.com/RvRijsselt/dt-test_locallaplaciancl/blob/master/testeasierkernel.c#L238), kernel param name [buf_g3_l0](https://github.com/RvRijsselt/dt-test_locallaplaciancl/blob/master/locallaplacian.cl#L346)). In the unoptimized output you see that the switch case and image numbers match. In the optimized version cases 0-2 read image 0 and cases 3-4 read image 2. 
+
+## Full program test
 Run with `./testlocallaplaciancl`
 
 Example output with AMDPro (for me this driver's results is the ground truth. i.e. no artifacts when kernel is used in darktable):
