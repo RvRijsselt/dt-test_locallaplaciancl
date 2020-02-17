@@ -330,3 +330,56 @@ write_back(
   pixel.x = 100.0f*read_imagef(processed, sampleri, (int2)(x+max_supp, y+max_supp)).x;
   write_imagef (output, (int2)(x, y), pixel);
 }
+
+
+kernel void
+easier_kernel(
+    read_only  image2d_t input,      // original input buffer, gauss at current fine pyramid level
+    read_only  image2d_t output1,    // state of reconstruction, coarse output buffer
+    write_only image2d_t output0,    // reconstruction, one level finer, run kernel on this dimension
+    read_only  image2d_t buf_g0_l0,  // image2d_array_t only supported in ocl 2.0 :(
+    read_only  image2d_t buf_g0_l1,
+    read_only  image2d_t buf_g1_l0,
+    read_only  image2d_t buf_g1_l1,
+    read_only  image2d_t buf_g2_l0,
+    read_only  image2d_t buf_g2_l1,
+    read_only  image2d_t buf_g3_l0,
+    read_only  image2d_t buf_g3_l1,
+    read_only  image2d_t buf_g4_l0,
+    read_only  image2d_t buf_g4_l1,
+    read_only  image2d_t buf_g5_l0,
+    read_only  image2d_t buf_g5_l1,
+    const int  pw,                   // width and height of the fine buffers (l0)
+    const int  ph)
+{
+  const int x = get_global_id(0);
+  const int y = get_global_id(1);
+
+  // input image simply steps from [0 to 1.0]
+  float v = read_imagef(input, sampleri, (int2)(x, y)).x;
+
+  int lo = (int)(v * 5);
+  switch (lo)
+  {
+    case 0:
+      v = read_imagef(buf_g0_l0, sampleri, (int2)(0,0)).x;
+      break;
+    case 1:
+      v = read_imagef(buf_g1_l0, sampleri, (int2)(0,0)).x;
+      break;
+    case 2:
+      v = read_imagef(buf_g2_l0, sampleri, (int2)(0,0)).x;
+      break;
+    case 3:
+      v = read_imagef(buf_g3_l0, sampleri, (int2)(0,0)).x;
+      break;
+    default:
+      v = read_imagef(buf_g4_l0, sampleri, (int2)(0,0)).x;
+      break;
+  }
+
+  float4 pixel;
+  pixel.x = v + lo;
+  
+  write_imagef (output0, (int2)(x, y), pixel);
+}
