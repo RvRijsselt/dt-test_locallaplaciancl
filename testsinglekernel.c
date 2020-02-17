@@ -10,7 +10,6 @@
 
 #include "locallaplaciancl.h"
 #include "single-data-input.h"
-#include "single-expected.h"
 
 #define CL_ERR_TO_STR(err) case err: return #err
 char const* clGetErrorString(cl_int const err)
@@ -234,6 +233,15 @@ int run_kernel(int width, int height, int bpp, float* data, const char *options)
   err |= dt_opencl_write_host_to_device(queue, input_dev_processed_k2l0, b->dev_processed[2][0], 32, 32, bpp);
   err |= dt_opencl_write_host_to_device(queue, input_dev_processed_k2l1, b->dev_processed[2][1], 16, 16, bpp);
   err |= dt_opencl_write_host_to_device(queue, input_dev_processed_k2l2, b->dev_processed[2][2], 16, 16, bpp);
+  err |= dt_opencl_write_host_to_device(queue, input_dev_processed_k3l0, b->dev_processed[3][0], 32, 32, bpp);
+  err |= dt_opencl_write_host_to_device(queue, input_dev_processed_k3l1, b->dev_processed[3][1], 16, 16, bpp);
+  err |= dt_opencl_write_host_to_device(queue, input_dev_processed_k3l2, b->dev_processed[3][2], 16, 16, bpp);
+  err |= dt_opencl_write_host_to_device(queue, input_dev_processed_k4l0, b->dev_processed[4][0], 32, 32, bpp);
+  err |= dt_opencl_write_host_to_device(queue, input_dev_processed_k4l1, b->dev_processed[4][1], 16, 16, bpp);
+  err |= dt_opencl_write_host_to_device(queue, input_dev_processed_k4l2, b->dev_processed[4][2], 16, 16, bpp);
+  err |= dt_opencl_write_host_to_device(queue, input_dev_processed_k5l0, b->dev_processed[5][0], 32, 32, bpp);
+  err |= dt_opencl_write_host_to_device(queue, input_dev_processed_k5l1, b->dev_processed[5][1], 16, 16, bpp);
+  err |= dt_opencl_write_host_to_device(queue, input_dev_processed_k5l2, b->dev_processed[5][2], 16, 16, bpp);
   //err |= dt_opencl_write_host_to_device(queue, input_dev_output_l0, b->dev_output[0], 32, 32, bpp);     // is uninitialized, write used only
   //err |= dt_opencl_write_host_to_device(queue, input_dev_output_l1, b->dev_output[1], 16, 16, bpp);     // is uninitialized, write used only
   err |= dt_opencl_write_host_to_device(queue, input_dev_output_l2, b->dev_output[2], 16, 16, bpp);   // this is actually used as input
@@ -290,7 +298,7 @@ int run_kernel(int width, int height, int bpp, float* data, const char *options)
     err = dt_opencl_copy_device_to_host(b->queue, buf, b->dev_output[l], wd, ht, sizeof(float));  
     if (err != CL_SUCCESS) { fprintf(stderr, "Error dt_opencl_copy_device_to_host: %s\n", clGetErrorString(err)); exit(1); }
 
-    FILE *txt = fopen("single-actual.h", "w");
+    FILE *txt = fopen("single-actual-output.h", "w");
     fprintf(txt, "float actual_dev_output_l%d[%d*%d] = { \n", l, wd, ht);
 
     char filename[256] = { 0 };
@@ -309,11 +317,7 @@ int run_kernel(int width, int height, int bpp, float* data, const char *options)
     fprintf(txt, "\n\n");
     fclose(txt);
 
-    float actual_dev_output_l1_with_O0[16*16] = { -0x1.1af24cp-5, -0x1.1af24cp-5, -0x1.f511bp-6, -0x1.77b9ap-7, 0x1.8975ep-7, 0x1.247e9cp-5, 0x1.e810ap-5, 0x1.227628p-4, 0x1.1ef63cp-4, 0x1.1c3a38p-4, 0x1.1bd24ep-4, 0x1.1bafa8p-4, 0x1.1bafacp-4, 0x1.1bafa8p-4, 0x1.1bafa8p-4, 0x1.1bafa8p-4, -0x1.1af24cp-5, -0x1.1af24cp-5, -0x1.f511bp-6, -0x1.77b9ap-7, 0x1.8975ep-7, 0x1.247e9cp-5, 0x1.e810ap-5, 0x1.227628p-4, 0x1.1ef63cp-4, 0x1.1c3a38p-4, 0x1.1bd24ep-4, 0x1.1bafa8p-4, 0x1.1bafacp-4, 0x1.1bafa8p-4, 0x1.1bafa8p-4, 0x1.1bafa8p-4, 0x1.229f3p-6, 0x1.229f3p-6, 0x1.68225p-6, 0x1.574cp-5, 0x1.0f1cdp-4, 0x1.6bce36p-4, 0x1.c2b684p-4, 0x1.ecc36cp-4, 0x1.ea8bfp-4, 0x1.e8745cp-4, 0x1.e8246p-4, 0x1.e809b6p-4, 0x1.e809bap-4, 0x1.e809b6p-4, 0x1.e809b6p-4, 0x1.e809b6p-4, 0x1.a7c5ccp-3, 0x1.a7c5ccp-3, 0x1.af5ffp-3, 0x1.d1dbbp-3, 0x1.fd1a8p-3, 0x1.143d68p-2, 0x1.28a4ccp-2, 0x1.32cfa8p-2, 0x1.32f376p-2, 0x1.32bcb2p-2, 0x1.32b44cp-2, 0x1.32b18p-2, 0x1.32b17ep-2, 0x1.32b18p-2, 0x1.32b18p-2, 0x1.32b18p-2, 0x1.9b3726p-2, 0x1.9b3726p-2, 0x1.9f2c06p-2, 0x1.b1f76ep-2, 0x1.cc964ep-2, 0x1.e4b5e2p-2, 0x1.f92beap-2, 0x1.01bfb2p-1, 0x1.030cb6p-1, 0x1.037a14p-1, 0x1.038a82p-1, 0x1.038ffcp-1, 0x1.038ffep-1, 0x1.038ffcp-1, 0x1.038ffcp-1, 0x1.038ffcp-1, 0x1.2c0f5ap-1, 0x1.2c0f5ap-1, 0x1.2e0ffcp-1, 0x1.3411eap-1, 0x1.3c51eap-1, 0x1.450cccp-1, 0x1.4cab84p-1, 0x1.51970cp-1, 0x1.5451eep-1, 0x1.555ebcp-1, 0x1.55870ep-1, 0x1.55948p-1, 0x1.55948p-1, 0x1.55948p-1, 0x1.55948p-1, 0x1.55948p-1, 0x1.78428cp-1, 0x1.78428cp-1, 0x1.7a433p-1, 0x1.80451ap-1, 0x1.88851cp-1, 0x1.914p-1, 0x1.98debap-1, 0x1.9dca4p-1, 0x1.a0852p-1, 0x1.a191fp-1, 0x1.a1ba44p-1, 0x1.a1c7b6p-1, 0x1.a1c7b4p-1, 0x1.a1c7b6p-1, 0x1.a1c7b6p-1, 0x1.a1c7b6p-1, 0x1.a975cp-1, 0x1.a975cp-1, 0x1.ab7664p-1, 0x1.b1784ep-1, 0x1.b9b85p-1, 0x1.c27332p-1, 0x1.ca11ecp-1, 0x1.cefd74p-1, 0x1.d1b856p-1, 0x1.d2c522p-1, 0x1.d2ed78p-1, 0x1.d2fae6p-1, 0x1.d2fae8p-1, 0x1.d2fae6p-1, 0x1.d2fae6p-1, 0x1.d2fae6p-1, 0x1.c4c28ep-1, 0x1.c4c28ep-1, 0x1.c6c332p-1, 0x1.ccc51ep-1, 0x1.d5051ep-1, 0x1.ddcp-1, 0x1.e55ebap-1, 0x1.ea4a4p-1, 0x1.ed0522p-1, 0x1.ee11fp-1, 0x1.ee3a44p-1, 0x1.ee47b4p-1, 0x1.ee47b4p-1, 0x1.ee47b4p-1, 0x1.ee47b4p-1, 0x1.ee47b4p-1, 0x1.cf428ep-1, 0x1.cf428ep-1, 0x1.d14332p-1, 0x1.d7451cp-1, 0x1.df851cp-1, 0x1.e84p-1, 0x1.efdebap-1, 0x1.f4ca4p-1, 0x1.f78522p-1, 0x1.f891fp-1, 0x1.f8ba42p-1, 0x1.f8c7b4p-1, 0x1.f8c7b4p-1, 0x1.f8c7b4p-1, 0x1.f8c7b4p-1, 0x1.f8c7b4p-1, 0x1.d0d5c2p-1, 0x1.d0d5c2p-1, 0x1.d2d666p-1, 0x1.d8d85p-1, 0x1.e1184ep-1, 0x1.e9d332p-1, 0x1.f171ecp-1, 0x1.f65d74p-1, 0x1.f91856p-1, 0x1.fa252p-1, 0x1.fa4d78p-1, 0x1.fa5ae8p-1, 0x1.fa5aeap-1, 0x1.fa5ae8p-1, 0x1.fa5ae8p-1, 0x1.fa5ae8p-1, 0x1.d15c28p-1, 0x1.d15c28p-1, 0x1.d35cccp-1, 0x1.d95eb4p-1, 0x1.e19eb4p-1, 0x1.ea599ap-1, 0x1.f1f854p-1, 0x1.f6e3d8p-1, 0x1.f99eb8p-1, 0x1.faab8ap-1, 0x1.fad3dcp-1, 0x1.fae14ep-1, 0x1.fae14cp-1, 0x1.fae14ep-1, 0x1.fae14ep-1, 0x1.fae14ep-1, 0x1.d15c26p-1, 0x1.d15c26p-1, 0x1.d35ccep-1, 0x1.d95eb6p-1, 0x1.e19eb6p-1, 0x1.ea5996p-1, 0x1.f1f854p-1, 0x1.f6e3dap-1, 0x1.f99ebep-1, 0x1.faab88p-1, 0x1.fad3ep-1, 0x1.fae14cp-1, 0x1.fae15p-1, 0x1.fae14cp-1, 0x1.fae14cp-1, 0x1.fae14cp-1, 0x1.d15c28p-1, 0x1.d15c28p-1, 0x1.d35cccp-1, 0x1.d95eb4p-1, 0x1.e19eb4p-1, 0x1.ea599ap-1, 0x1.f1f854p-1, 0x1.f6e3d8p-1, 0x1.f99eb8p-1, 0x1.faab8ap-1, 0x1.fad3dcp-1, 0x1.fae14ep-1, 0x1.fae14cp-1, 0x1.fae14ep-1, 0x1.fae14ep-1, 0x1.fae14ep-1, 0x1.d15c28p-1, 0x1.d15c28p-1, 0x1.d35cccp-1, 0x1.d95eb4p-1, 0x1.e19eb4p-1, 0x1.ea599ap-1, 0x1.f1f854p-1, 0x1.f6e3d8p-1, 0x1.f99eb8p-1, 0x1.faab8ap-1, 0x1.fad3dcp-1, 0x1.fae14ep-1, 0x1.fae14cp-1, 0x1.fae14ep-1, 0x1.fae14ep-1, 0x1.fae14ep-1, 0x1.d15c28p-1, 0x1.d15c28p-1, 0x1.d35cccp-1, 0x1.d95eb4p-1, 0x1.e19eb4p-1, 0x1.ea599ap-1, 0x1.f1f854p-1, 0x1.f6e3d8p-1, 0x1.f99eb8p-1, 0x1.faab8ap-1, 0x1.fad3dcp-1, 0x1.fae14ep-1, 0x1.fae14cp-1, 0x1.fae14ep-1, 0x1.fae14ep-1, 0x1.fae14ep-1, };
-
-    // hmm strange
-    //result += image_count_inequal(l==0?expected_dev_output_l0:l==1?expected_dev_output_l1:expected_dev_output_l2, buf, wd * ht);
-    int diff = image_count_inequal(actual_dev_output_l1, buf, wd * ht);
+    int diff = image_count_inequal(expected_dev_output_l1, buf, wd * ht);
     if (diff > 0)
     {
       printf("Output level %d is different\n", l);
@@ -337,26 +341,6 @@ int run_kernel(int width, int height, int bpp, float* data, const char *options)
   return result;
 }
 
-// Expected result based on AMDGPU-Pro and checked with Intel GPUs
-float expectedResult[] = {
-    -4.23, -2.96, -1.72, -0.49, 00.73, 01.93, 03.12, 04.32, 05.54, 06.82,
-    08.94, 10.17, 11.34, 12.48, 13.59, 14.68, 15.74, 16.79, 17.85, 18.96, 
-    20.11, 21.23, 22.33, 23.43, 24.53, 25.65, 26.75, 27.82, 28.90, 30.01, 
-    30.39, 31.49, 32.54, 33.57, 34.58, 35.59, 36.59, 37.60, 38.63, 39.74, 
-    39.91, 41.08, 42.22, 43.31, 44.37, 45.40, 46.40, 47.39, 48.41, 49.47, 
-    49.59, 50.68, 51.72, 52.74, 53.74, 54.74, 55.74, 56.76, 57.84, 58.99, 
-    59.32, 60.47, 61.54, 62.56, 63.55, 64.53, 65.49, 66.45, 67.45, 68.52, 
-    69.20, 70.30, 71.37, 72.41, 73.45, 74.50, 75.56, 76.60, 77.66, 78.76, 
-    79.90, 81.02, 82.09, 83.12, 84.12, 85.13, 86.14, 87.18, 88.26, 89.41, 
-    91.97, 93.23, 94.46, 95.67, 96.86, 98.02, 99.18, 100.33, 101.51, 102.73
-};
-
-// Not entirely correct comparison but it does the job
-int floatcmp(float a, float b)
-{
-  return (int)(a * 100 + .5) == (int)(b * 100 + .5);
-}
-
 int main(int argc, char *argv[]) 
 {
   cl_int i, x, y;
@@ -372,20 +356,8 @@ int main(int argc, char *argv[])
     options = argv[1];
   }
 
-  // Prepare some input data
-  const size_t buf_size = width * height * bpp;
-  float *data = (float *)malloc(buf_size);
-  for (y = 0; y < height; ++y) 
-  {
-    for (x = 0; x < width; ++x) 
-    {
-      i = y * width + x;
-      data[i] = i;
-    }
-  }
-
   // Run the kernel
-  int result = run_kernel(width, height, bpp, data, options);
+  int result = run_kernel(width, height, bpp, NULL, options);
 
   printf("Different values: %d\n", result); 
   printf("Result: %s\n", (result > 0 ? "failed" : "passed")); 
